@@ -11,17 +11,17 @@ export type ViewMode = 'list' | 'matrix'
 export interface Task {
   id: string
   title: string
-  description?: string
+  description?: string | null
   createdAt: string
-  dueDate?: string
+  dueDate?: string | null
   isCompleted: boolean
   priority: PriorityLevel
-  quadrant?: EisenhowerQuadrant
-  estimatedMinutes?: number
+  quadrant?: EisenhowerQuadrant | null
+  estimatedMinutes?: number | null
   tags: string[]
   subtasks: Subtask[]
-  aiScore?: number
-  aiReasoning?: string
+  aiScore?: number | null
+  aiReasoning?: string | null
 }
 
 export interface PrioritizationResult {

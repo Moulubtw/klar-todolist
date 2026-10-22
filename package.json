@@ -1,34 +1,38 @@
 {
-  "name": "todolist",
+  "name": "klar-todolist",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "1.0.0",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@google/genai": "^2.30.0",
+    "@prisma/client": "^6.19.0",
+    "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
     "framer-motion": "^14.6.0",
-    "lucide-react": "^1.61.0",
+    "jose": "^6.1.0",
+    "lucide-react": "^0.544.0",
+    "next": "^15.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "uuid": "^14.0.3",
+    "zod": "^4.1.11",
     "zustand": "^5.0.16"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.3",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@types/uuid": "^10.0.0",
-    "@vitejs/plugin-react": "^6.1.2",
-    "oxlint": "^1.88.0",
+    "prisma": "^6.19.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "~6.0.3",
-    "vite": "^8.3.4"
+    "typescript": "~5.9.2"
   }
 }

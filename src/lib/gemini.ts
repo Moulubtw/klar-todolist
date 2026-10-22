@@ -4,8 +4,8 @@ import type {
   Subtask,
   Task,
   TaskAnalysisResult,
-} from '../types/task'
-import { createId } from './id'
+} from '@/types/task'
+import { randomUUID } from 'crypto'
 
 function getClient(apiKey: string) {
   return new GoogleGenAI({ apiKey })
@@ -64,7 +64,8 @@ const analysisSchema: Schema = {
     estimatedMinutes: { type: Type.INTEGER },
     dueDate: {
       type: Type.STRING,
-      description: 'ISO date YYYY-MM-DD если дедлайн угадывается из текста, иначе пустая строка',
+      description:
+        'ISO date YYYY-MM-DD если дедлайн угадывается из текста, иначе пустая строка',
     },
     tags: {
       type: Type.ARRAY,
@@ -110,7 +111,7 @@ export class GeminiError extends Error {
 function mapApiError(error: unknown): never {
   const message = error instanceof Error ? error.message : String(error)
   if (/api key|403|401|invalid/i.test(message)) {
-    throw new GeminiError('Неверный или отсутствующий GEMINI_API_KEY', 'AUTH')
+    throw new GeminiError('Неверный GEMINI_API_KEY', 'AUTH')
   }
   if (/429|quota|rate/i.test(message)) {
     throw new GeminiError('Превышена квота Gemini. Попробуйте позже.', 'RATE')
@@ -201,7 +202,8 @@ export async function analyzeNewTaskWithAI(
     const parsed = JSON.parse(text) as TaskAnalysisResult & { dueDate?: string }
     return {
       ...parsed,
-      dueDate: parsed.dueDate && parsed.dueDate.length > 0 ? parsed.dueDate : undefined,
+      dueDate:
+        parsed.dueDate && parsed.dueDate.length > 0 ? parsed.dueDate : undefined,
     }
   } catch (error) {
     if (error instanceof GeminiError) throw error
@@ -212,7 +214,7 @@ export async function analyzeNewTaskWithAI(
 export async function decomposeTaskWithAI(
   apiKey: string,
   title: string,
-  description?: string,
+  description?: string | null,
 ): Promise<Subtask[]> {
   if (!apiKey.trim()) {
     throw new GeminiError('Добавьте GEMINI_API_KEY в настройках', 'NO_KEY')
@@ -243,7 +245,7 @@ export async function decomposeTaskWithAI(
     if (!text) throw new GeminiError('Пустой ответ от Gemini', 'UNKNOWN')
     const items = JSON.parse(text) as { title: string }[]
     return items.slice(0, 5).map((item) => ({
-      id: createId(),
+      id: randomUUID(),
       title: item.title,
       isCompleted: false,
     }))

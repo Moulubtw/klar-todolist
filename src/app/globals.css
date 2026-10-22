@@ -22,8 +22,7 @@
 }
 
 html,
-body,
-#root {
+body {
   min-height: 100%;
 }
 
@@ -49,7 +48,8 @@ body::before {
   z-index: 0;
 }
 
-#root {
+#__next,
+body > div {
   position: relative;
   z-index: 1;
 }

@@ -1,5 +1,6 @@
+'use client'
+
 import { create } from 'zustand'
-import { createId } from '../lib/id'
 
 export type ToastKind = 'info' | 'success' | 'error'
 
@@ -18,7 +19,7 @@ interface ToastState {
 export const useToastStore = create<ToastState>((set) => ({
   toasts: [],
   push: (message, kind = 'info') => {
-    const id = createId()
+    const id = crypto.randomUUID()
     set((state) => ({
       toasts: [...state.toasts, { id, message, kind }],
     }))

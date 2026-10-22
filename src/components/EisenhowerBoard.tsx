@@ -1,5 +1,7 @@
-import type { EisenhowerQuadrant, Task } from '../types/task'
-import { quadrantMeta } from '../lib/priority'
+'use client'
+
+import type { EisenhowerQuadrant, Task } from '@/types/task'
+import { quadrantMeta } from '@/lib/priority'
 import { TaskCard } from './TaskCard'
 
 const ORDER: EisenhowerQuadrant[] = [

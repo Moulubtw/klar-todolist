@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import {
   Check,
@@ -9,12 +11,15 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import clsx from 'clsx'
-import type { Task } from '../types/task'
-import { formatMinutes, priorityStyles } from '../lib/priority'
-import { decomposeTaskWithAI, GeminiError } from '../lib/gemini'
-import { useSettingsStore } from '../store/useSettingsStore'
-import { useTaskStore } from '../store/useTaskStore'
-import { useToastStore } from '../store/useToastStore'
+import type { Task } from '@/types/task'
+import { formatMinutes, priorityStyles } from '@/lib/priority'
+import { api, ApiError } from '@/lib/api-client'
+import {
+  deleteTaskApi,
+  patchTask,
+  useTaskStore,
+} from '@/store/useTaskStore'
+import { useToastStore } from '@/store/useToastStore'
 
 interface Props {
   task: Task
@@ -25,40 +30,29 @@ interface Props {
 export function TaskCard({ task, shimmer, onNeedKey }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [decomposing, setDecomposing] = useState(false)
-  const apiKey = useSettingsStore((s) => s.apiKey)
-  const toggleComplete = useTaskStore((s) => s.toggleComplete)
-  const deleteTask = useTaskStore((s) => s.deleteTask)
-  const setSubtasks = useTaskStore((s) => s.setSubtasks)
-  const toggleSubtask = useTaskStore((s) => s.toggleSubtask)
   const analyzingIds = useTaskStore((s) => s.analyzingIds)
+  const upsertTask = useTaskStore((s) => s.upsertTask)
   const push = useToastStore((s) => s.push)
   const analyzing = analyzingIds.includes(task.id)
   const timeLabel = formatMinutes(task.estimatedMinutes)
   const priority = priorityStyles[task.priority]
 
   async function handleDecompose() {
-    if (!apiKey) {
-      push('Добавьте GEMINI_API_KEY в настройках', 'error')
-      onNeedKey()
-      return
-    }
     setDecomposing(true)
     try {
-      const subtasks = await decomposeTaskWithAI(
-        apiKey,
-        task.title,
-        task.description,
-      )
-      setSubtasks(task.id, subtasks)
+      const data = await api<{ task: Task }>('/api/ai/decompose', {
+        method: 'POST',
+        body: JSON.stringify({ taskId: task.id }),
+      })
+      upsertTask(data.task)
       setExpanded(true)
       push('Подзадачи готовы', 'success')
     } catch (error) {
       push(
-        error instanceof GeminiError
-          ? error.message
-          : 'Не удалось разбить задачу',
+        error instanceof ApiError ? error.message : 'Не удалось разбить задачу',
         'error',
       )
+      if (error instanceof ApiError && error.code === 'NO_KEY') onNeedKey()
     } finally {
       setDecomposing(false)
     }
@@ -79,7 +73,7 @@ export function TaskCard({ task, shimmer, onNeedKey }: Props) {
       <div className="flex gap-3">
         <button
           type="button"
-          onClick={() => toggleComplete(task.id)}
+          onClick={() => void patchTask(task.id, { isCompleted: !task.isCompleted })}
           className={clsx(
             'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition',
             task.isCompleted
@@ -160,10 +154,7 @@ export function TaskCard({ task, shimmer, onNeedKey }: Props) {
               >
                 <ChevronDown
                   size={14}
-                  className={clsx(
-                    'transition',
-                    expanded && 'rotate-180',
-                  )}
+                  className={clsx('transition', expanded && 'rotate-180')}
                 />
                 Подзадачи ({task.subtasks.filter((s) => s.isCompleted).length}/
                 {task.subtasks.length})
@@ -174,7 +165,15 @@ export function TaskCard({ task, shimmer, onNeedKey }: Props) {
                     <li key={sub.id}>
                       <button
                         type="button"
-                        onClick={() => toggleSubtask(task.id, sub.id)}
+                        onClick={() =>
+                          void patchTask(task.id, {
+                            subtasks: task.subtasks.map((s) =>
+                              s.id === sub.id
+                                ? { ...s, isCompleted: !s.isCompleted }
+                                : s,
+                            ),
+                          })
+                        }
                         className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-mist"
                       >
                         <span
@@ -221,7 +220,7 @@ export function TaskCard({ task, shimmer, onNeedKey }: Props) {
               </button>
               <button
                 type="button"
-                onClick={() => deleteTask(task.id)}
+                onClick={() => void deleteTaskApi(task.id)}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-semibold text-coral/80 hover:bg-coral/10"
               >
                 <Trash2 size={13} />
@@ -231,7 +230,7 @@ export function TaskCard({ task, shimmer, onNeedKey }: Props) {
           ) : (
             <button
               type="button"
-              onClick={() => deleteTask(task.id)}
+              onClick={() => void deleteTaskApi(task.id)}
               className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-coral/70 hover:text-coral"
             >
               <Trash2 size={13} />

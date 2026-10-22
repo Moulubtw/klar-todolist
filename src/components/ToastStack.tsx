@@ -1,7 +1,9 @@
+'use client'
+
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
-import { useToastStore } from '../store/useToastStore'
 import clsx from 'clsx'
+import { useToastStore } from '@/store/useToastStore'
 
 export function ToastStack() {
   const toasts = useToastStore((s) => s.toasts)
@@ -22,8 +24,7 @@ export function ToastStack() {
                 'border-coral/30 bg-white/95 text-coral',
               toast.kind === 'success' &&
                 'border-sea/30 bg-white/95 text-sea-deep',
-              toast.kind === 'info' &&
-                'border-ink/10 bg-white/95 text-ink',
+              toast.kind === 'info' && 'border-ink/10 bg-white/95 text-ink',
             )}
           >
             <p className="flex-1 text-sm font-medium leading-snug">

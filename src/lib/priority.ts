@@ -1,4 +1,4 @@
-import type { EisenhowerQuadrant, PriorityLevel } from '../types/task'
+import type { EisenhowerQuadrant, PriorityLevel } from '@/types/task'
 
 export const priorityStyles: Record<
   PriorityLevel,
@@ -48,7 +48,7 @@ export const quadrantMeta: Record<
   },
 }
 
-export function formatMinutes(minutes?: number): string | null {
+export function formatMinutes(minutes?: number | null): string | null {
   if (!minutes || minutes <= 0) return null
   if (minutes < 60) return `~${minutes} мин`
   const h = Math.floor(minutes / 60)

@@ -1,44 +1,28 @@
-import { useEffect, useState } from 'react'
+'use client'
+
 import { Loader2, Wand2 } from 'lucide-react'
-import { GeminiError, prioritizeTasksWithAI } from '../lib/gemini'
-import { useSettingsStore } from '../store/useSettingsStore'
-import { useTaskStore } from '../store/useTaskStore'
-import { useToastStore } from '../store/useToastStore'
+import { api, ApiError } from '@/lib/api-client'
+import { useAuthStore } from '@/store/useAuthStore'
+import { useTaskStore } from '@/store/useTaskStore'
+import { useToastStore } from '@/store/useToastStore'
+import type { Task } from '@/types/task'
 
 interface Props {
   onNeedKey: () => void
 }
 
 export function MagicSortButton({ onNeedKey }: Props) {
-  const apiKey = useSettingsStore((s) => s.apiKey)
-  const canPrioritize = useSettingsStore((s) => s.canPrioritize)
-  const prioritizeCooldownMs = useSettingsStore((s) => s.prioritizeCooldownMs)
-  const markPrioritized = useSettingsStore((s) => s.markPrioritized)
+  const hasGeminiKey = useAuthStore((s) => s.user?.hasGeminiKey)
   const tasks = useTaskStore((s) => s.tasks)
-  const applyPrioritization = useTaskStore((s) => s.applyPrioritization)
+  const setTasks = useTaskStore((s) => s.setTasks)
   const isPrioritizing = useTaskStore((s) => s.isPrioritizing)
   const setIsPrioritizing = useTaskStore((s) => s.setIsPrioritizing)
   const push = useToastStore((s) => s.push)
-  const [cooldown, setCooldown] = useState(0)
-
-  useEffect(() => {
-    const tick = () => setCooldown(prioritizeCooldownMs())
-    tick()
-    const id = window.setInterval(tick, 500)
-    return () => window.clearInterval(id)
-  }, [prioritizeCooldownMs])
 
   async function handleClick() {
-    if (!apiKey) {
+    if (!hasGeminiKey) {
       push('Добавьте GEMINI_API_KEY в настройках', 'error')
       onNeedKey()
-      return
-    }
-    if (!canPrioritize()) {
-      push(
-        `Подождите ${Math.ceil(prioritizeCooldownMs() / 1000)} с перед следующим запросом`,
-        'info',
-      )
       return
     }
 
@@ -50,30 +34,27 @@ export function MagicSortButton({ onNeedKey }: Props) {
 
     setIsPrioritizing(true)
     try {
-      const results = await prioritizeTasksWithAI(apiKey, active)
-      applyPrioritization(results)
-      markPrioritized()
+      const data = await api<{ tasks: Task[] }>('/api/ai/prioritize', {
+        method: 'POST',
+      })
+      setTasks(data.tasks)
       push('Список перестроен по AI-приоритету', 'success')
     } catch (error) {
       push(
-        error instanceof GeminiError
-          ? error.message
-          : 'AI-приоритезация недоступна',
+        error instanceof ApiError ? error.message : 'AI-приоритезация недоступна',
         'error',
       )
-      if (error instanceof GeminiError && error.code === 'NO_KEY') onNeedKey()
+      if (error instanceof ApiError && error.code === 'NO_KEY') onNeedKey()
     } finally {
       setIsPrioritizing(false)
     }
   }
 
-  const disabled = isPrioritizing || cooldown > 0
-
   return (
     <button
       type="button"
       onClick={handleClick}
-      disabled={disabled && isPrioritizing}
+      disabled={isPrioritizing}
       className="inline-flex items-center gap-2 rounded-xl bg-sea px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-sea-deep disabled:cursor-not-allowed disabled:opacity-70"
     >
       {isPrioritizing ? (
@@ -81,11 +62,7 @@ export function MagicSortButton({ onNeedKey }: Props) {
       ) : (
         <Wand2 size={16} />
       )}
-      {isPrioritizing
-        ? 'Разбираю…'
-        : cooldown > 0
-          ? `Подождите ${Math.ceil(cooldown / 1000)}с`
-          : 'Разобрать с AI'}
+      {isPrioritizing ? 'Разбираю…' : 'Разобрать с AI'}
     </button>
   )
 }
